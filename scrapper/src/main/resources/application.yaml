@@ -1,5 +1,7 @@
 app:
-  github-token: ${GITHUB_TOKEN} # env variable
+  github-token: ${GITHUB_TOKEN}
+  github-base-url: https://api.github.com
+  stackoverflow-base-url: "https://api.stackexchange.com"
   stackoverflow:
     key: ${SO_TOKEN_KEY}
     access-token: ${SO_ACCESS_TOKEN}
