@@ -86,11 +86,15 @@ pgadmin-data:
 ```
 
 Далее запустите сам Docker:
+
 ```
 docker-compose up -d --build
 ```
+
 Затем запустите модули bot и scrapper прямо через редактор кода, либо же с помощью
+
 ```
 mvn exec:exec@run-scrapper exec:exec@run-bot
 ```
+
 Для дополнительной справки: [HELP.md](./HELP.md)
