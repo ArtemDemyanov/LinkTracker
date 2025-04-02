@@ -1,82 +1,115 @@
 package backend.academy.scrapper.client;
 
-import backend.academy.scrapper.ScrapperConfig;
-import com.fasterxml.jackson.databind.JsonNode;
-import java.net.URI;
+import backend.academy.scrapper.client.dto.GitHubItem;
+import backend.academy.scrapper.config.ScrapperConfig;
+import backend.academy.scrapper.config.ScrapperConfig.GitHubProperties;
+import java.time.Instant;
+import java.util.List;
+import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
+import reactor.util.retry.Retry;
 
-/**
- * Клиент для взаимодействия с API GitHub. Этот класс предоставляет методы для получения информации о последнем
- * обновлении репозитория.
- */
 @Component
-public class GitHubClient {
-
+public class GitHubClient extends BaseApiClient {
     private static final Logger logger = LoggerFactory.getLogger(GitHubClient.class);
-    private final WebClient webClient;
+    private final GitHubProperties properties;
 
     /**
-     * Конструктор класса GitHubClient.
-     *
-     * @param webClientBuilder Builder для создания экземпляра WebClient.
-     * @param config Конфигурация Scrapper, содержащая токен GitHub и базовый URL.
+     * @param webClientBuilder Строитель для создания экземпляра WebClient.
+     * @param config Конфигурация приложения, содержащая настройки для GitHub API.
      */
     public GitHubClient(WebClient.Builder webClientBuilder, ScrapperConfig config) {
-        String githubToken = config.githubToken();
-        this.webClient = webClientBuilder
-                .baseUrl(config.githubBaseUrl())
-                .defaultHeader("Authorization", "Bearer " + githubToken)
+        super(
+                webClientBuilder,
+                config.github().baseUrl(),
+                config.github().connectionTimeout(),
+                config.github().readTimeout());
+        this.properties = config.github();
+
+        this.webClient
+                .mutate()
+                .defaultHeader("Authorization", "Bearer " + properties.token())
                 .build();
     }
 
     /**
-     * Получает время последнего обновления репозитория по его URL.
+     * Выполняет запрос к GitHub API для получения элементов репозитория.
      *
-     * @param url URL репозитория GitHub.
-     * @return Mono<String>, содержащий время последнего обновления.
+     * @param endpoint Конечная точка API (например, issues, pull requests).
+     * @param owner Владелец репозитория.
+     * @param repo Название репозитория.
+     * @param afterTime Время, после которого должны быть созданы элементы.
+     * @return Mono<List<GitHubItem>> Список элементов, соответствующих условиям фильтрации.
      */
-    public Mono<String> getLastUpdated(URI url) {
-        String[] pathParts = url.getPath().split("/");
-        if (pathParts.length < 3) {
-            logger.atError()
-                    .setMessage("Invalid repository URL")
-                    .addKeyValue("url", url)
-                    .log();
-            return Mono.error(new IllegalArgumentException("Некорректный URL репозитория"));
-        }
-        String owner = pathParts[1];
-        String repo = pathParts[2];
-
+    public Mono<List<GitHubItem>> fetchGitHubItems(String endpoint, String owner, String repo, Instant afterTime) {
         return webClient
                 .get()
-                .uri(uriBuilder -> uriBuilder.path("/repos/{owner}/{repo}").build(owner, repo))
+                .uri(uriBuilder -> uriBuilder
+                        .path("/repos/{owner}/{repo}/" + endpoint)
+                        .queryParam("state", "open")
+                        .queryParam("sort", "created")
+                        .queryParam("direction", "desc")
+                        .build(owner, repo))
                 .retrieve()
-                .onStatus(HttpStatusCode::is4xxClientError, response -> {
-                    return response.bodyToMono(String.class).flatMap(errorBody -> {
-                        logger.atError()
-                                .setMessage("GitHub API error")
-                                .addKeyValue("statusCode", response.statusCode())
-                                .addKeyValue("errorBody", errorBody)
-                                .log();
-                        return Mono.error(new RuntimeException("Ошибка от GitHub API: " + errorBody));
-                    });
-                })
-                .bodyToMono(JsonNode.class)
-                .map(jsonNode -> {
-                    JsonNode updatedAtNode = jsonNode.get("updated_at");
-                    if (updatedAtNode == null || updatedAtNode.isNull()) {
-                        logger.atError()
-                                .setMessage("Missing updated_at field in GitHub API response")
-                                .addKeyValue("url", url)
-                                .log();
-                        throw new RuntimeException("Поле updated_at отсутствует в ответе GitHub API");
-                    }
-                    return updatedAtNode.asText();
-                });
+                .onStatus(this::isError, this::handleError)
+                .bodyToFlux(GitHubItem.class)
+                .filter(item -> item.createdAt().isAfter(afterTime))
+                .collectList()
+                .retryWhen(createRetryPolicy());
+    }
+
+    /**
+     * Создает политику повторных попыток для запросов к GitHub API.
+     *
+     * @return Retry Политика повторных попыток с экспоненциальным откатом.
+     */
+    private Retry createRetryPolicy() {
+        return Retry.backoff(properties.maxRetries(), properties.retryDelay())
+                .doBeforeRetry(retry -> logger.warn("Retrying GitHub API call, attempt {}", retry.totalRetries() + 1));
+    }
+
+    /**
+     * Проверяет, является ли HTTP-статус ошибкой.
+     *
+     * @param status HTTP-статус ответа.
+     * @return true, если статус указывает на ошибку клиента или сервера; иначе false.
+     */
+    private boolean isError(HttpStatusCode status) {
+        return status.is4xxClientError() || status.is5xxServerError();
+    }
+
+    /**
+     * Обрабатывает ошибки, возникающие при выполнении запроса к GitHub API.
+     *
+     * @param response Ответ от сервера, содержащий информацию об ошибке.
+     * @return Mono<Throwable> Исключение, содержащее детали ошибки.
+     */
+    private Mono<Throwable> handleError(ClientResponse response) {
+        return response.bodyToMono(String.class)
+                .flatMap(body -> Mono.error(new GitHubApiException(
+                        "GitHub API error: " + response.statusCode() + " - " + body, response.statusCode())));
+    }
+
+    /** Исключение, представляющее ошибку при взаимодействии с GitHub API. */
+    @Getter
+    public static class GitHubApiException extends RuntimeException {
+        private final HttpStatusCode statusCode;
+
+        /**
+         * Конструктор исключения.
+         *
+         * @param message Сообщение об ошибке.
+         * @param statusCode HTTP-статус код ошибки.
+         */
+        public GitHubApiException(String message, HttpStatusCode statusCode) {
+            super(message);
+            this.statusCode = statusCode;
+        }
     }
 }

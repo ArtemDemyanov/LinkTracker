@@ -9,10 +9,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-/**
- * Машина состояний для управления состоянием пользователя. Этот класс отслеживает текущее состояние пользователя и
- * данные, связанные с этим состоянием.
- */
 @Component
 public class StateMachine {
 
@@ -23,15 +19,15 @@ public class StateMachine {
     private final Map<Long, List<String>> pendingFilters = new HashMap<>();
 
     /**
-     * Возвращает текущее состояние пользователя.
+     * Возвращает текущее состояние чата.
      *
-     * @param chatId Уникальный идентификатор чата.
-     * @return Текущее состояние пользователя.
+     * @param chatId Идентификатор чата.
+     * @return Текущее состояние чата. Если состояние не установлено, возвращается {@link TrackState#IDLE}.
      */
     public TrackState getState(Long chatId) {
         TrackState state = states.getOrDefault(chatId, TrackState.IDLE);
         logger.atDebug()
-                .setMessage("Retrieved state for chat")
+                .setMessage("Получение состояния")
                 .addKeyValue("chatId", chatId)
                 .addKeyValue("state", state)
                 .log();
@@ -39,14 +35,14 @@ public class StateMachine {
     }
 
     /**
-     * Устанавливает текущее состояние пользователя.
+     * Устанавливает состояние чата.
      *
-     * @param chatId Уникальный идентификатор чата.
-     * @param state Новое состояние пользователя.
+     * @param chatId Идентификатор чата.
+     * @param state Новое состояние чата.
      */
     public void setState(Long chatId, TrackState state) {
         logger.atInfo()
-                .setMessage("Setting state for chat")
+                .setMessage("Установка состояния")
                 .addKeyValue("chatId", chatId)
                 .addKeyValue("state", state)
                 .log();
@@ -54,14 +50,14 @@ public class StateMachine {
     }
 
     /**
-     * Устанавливает ожидаемую ссылку для пользователя.
+     * Устанавливает ожидаемую ссылку для чата.
      *
-     * @param chatId Уникальный идентификатор чата.
-     * @param link Ссылка, ожидаемая от пользователя.
+     * @param chatId Идентификатор чата.
+     * @param link Ссылка, которую необходимо сохранить.
      */
     public void setPendingLink(Long chatId, URI link) {
         logger.atInfo()
-                .setMessage("Setting pending link for chat")
+                .setMessage("Установка ожидаемой ссылки")
                 .addKeyValue("chatId", chatId)
                 .addKeyValue("link", link)
                 .log();
@@ -69,15 +65,15 @@ public class StateMachine {
     }
 
     /**
-     * Возвращает ожидаемую ссылку для пользователя.
+     * Возвращает ожидаемую ссылку для чата.
      *
-     * @param chatId Уникальный идентификатор чата.
-     * @return Ожидаемая ссылка или null, если ссылка не установлена.
+     * @param chatId Идентификатор чата.
+     * @return Ожидаемая ссылка. Если ссылка не установлена, возвращается null.
      */
     public URI getPendingLink(Long chatId) {
         URI link = pendingLinks.get(chatId);
         logger.atDebug()
-                .setMessage("Retrieved pending link for chat")
+                .setMessage("Получение ожидаемой ссылки")
                 .addKeyValue("chatId", chatId)
                 .addKeyValue("link", link)
                 .log();
@@ -85,14 +81,14 @@ public class StateMachine {
     }
 
     /**
-     * Устанавливает ожидаемые теги для пользователя.
+     * Устанавливает ожидаемые теги для чата.
      *
-     * @param chatId Уникальный идентификатор чата.
-     * @param tags Список тегов, ожидаемых от пользователя.
+     * @param chatId Идентификатор чата.
+     * @param tags Список тегов, которые необходимо сохранить.
      */
     public void setPendingTags(Long chatId, List<String> tags) {
         logger.atInfo()
-                .setMessage("Setting pending tags for chat")
+                .setMessage("Установка ожидаемых тегов")
                 .addKeyValue("chatId", chatId)
                 .addKeyValue("tags", tags)
                 .log();
@@ -100,15 +96,15 @@ public class StateMachine {
     }
 
     /**
-     * Возвращает ожидаемые теги для пользователя.
+     * Возвращает ожидаемые теги для чата.
      *
-     * @param chatId Уникальный идентификатор чата.
-     * @return Список ожидаемых тегов или пустой список, если теги не установлены.
+     * @param chatId Идентификатор чата.
+     * @return Список ожидаемых тегов. Если теги не установлены, возвращается пустой список.
      */
     public List<String> getPendingTags(Long chatId) {
         List<String> tags = pendingTags.getOrDefault(chatId, Collections.emptyList());
         logger.atDebug()
-                .setMessage("Retrieved pending tags for chat")
+                .setMessage("Получение ожидаемых тегов")
                 .addKeyValue("chatId", chatId)
                 .addKeyValue("tags", tags)
                 .log();
@@ -116,14 +112,14 @@ public class StateMachine {
     }
 
     /**
-     * Устанавливает ожидаемые фильтры для пользователя.
+     * Устанавливает ожидаемые фильтры для чата.
      *
-     * @param chatId Уникальный идентификатор чата.
-     * @param filters Список фильтров, ожидаемых от пользователя.
+     * @param chatId Идентификатор чата.
+     * @param filters Список фильтров, которые необходимо сохранить.
      */
     public void setPendingFilters(Long chatId, List<String> filters) {
         logger.atInfo()
-                .setMessage("Setting pending filters for chat")
+                .setMessage("Установка ожидаемых фильтров")
                 .addKeyValue("chatId", chatId)
                 .addKeyValue("filters", filters)
                 .log();
@@ -131,15 +127,15 @@ public class StateMachine {
     }
 
     /**
-     * Возвращает ожидаемые фильтры для пользователя.
+     * Возвращает ожидаемые фильтры для чата.
      *
-     * @param chatId Уникальный идентификатор чата.
-     * @return Список ожидаемых фильтров или пустой список, если фильтры не установлены.
+     * @param chatId Идентификатор чата.
+     * @return Список ожидаемых фильтров. Если фильтры не установлены, возвращается пустой список.
      */
     public List<String> getPendingFilters(Long chatId) {
         List<String> filters = pendingFilters.getOrDefault(chatId, Collections.emptyList());
         logger.atDebug()
-                .setMessage("Retrieved pending filters for chat")
+                .setMessage("Получение ожидаемых фильтров")
                 .addKeyValue("chatId", chatId)
                 .addKeyValue("filters", filters)
                 .log();
@@ -147,13 +143,13 @@ public class StateMachine {
     }
 
     /**
-     * Очищает все ожидаемые данные для пользователя.
+     * Очищает все временные данные для чата.
      *
-     * @param chatId Уникальный идентификатор чата.
+     * @param chatId Идентификатор чата.
      */
     public void clearPendingData(Long chatId) {
         logger.atInfo()
-                .setMessage("Clearing pending data for chat")
+                .setMessage("Очистка ожидаемых данных")
                 .addKeyValue("chatId", chatId)
                 .log();
         pendingLinks.remove(chatId);

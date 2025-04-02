@@ -4,14 +4,13 @@ import com.pengrad.telegrambot.TelegramBot;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/** Конфигурация Telegram бота. Этот класс создает и настраивает экземпляр Telegram бота. */
 @Configuration
 public class TelegramBotConfig {
 
     private final BotConfig botConfig;
 
     /**
-     * Конструктор класса TelegramBotConfig. Инициализирует конфигурацию бота.
+     * Конфигурация для создания экземпляра Telegram бота.
      *
      * @param botConfig Конфигурация бота, содержащая токен Telegram.
      */

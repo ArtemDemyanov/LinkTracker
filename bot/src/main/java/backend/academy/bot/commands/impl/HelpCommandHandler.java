@@ -7,15 +7,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-/** Обработчик команды /help. Этот класс обрабатывает команду /help, возвращая пользователю список доступных команд. */
 @Component
 public class HelpCommandHandler implements BotCommandHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(HelpCommandHandler.class);
 
     /**
-     * Обрабатывает команду /help. Этот метод возвращает пользователю сообщение с описанием доступных команд.
-     *
      * @param chatId Уникальный идентификатор чата, в котором была отправлена команда.
      * @param message Текст сообщения, содержащий команду /help.
      * @return Строка с описанием доступных команд.

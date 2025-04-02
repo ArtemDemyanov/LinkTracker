@@ -1,15 +1,14 @@
-package backend.academy.scrapper;
+package backend.academy.scrapper.config;
 
 import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/** Конфигурация Swagger для документации API. Этот класс настраивает Swagger для отображения документации API. */
 @Configuration
 public class SwaggerConfig {
 
     /**
-     * Создает и возвращает конфигурацию для публичного API.
+     * Конфигурация Swagger для документирования API.
      *
      * @return Конфигурация для публичного API.
      */
@@ -17,7 +16,7 @@ public class SwaggerConfig {
     public GroupedOpenApi publicApi() {
         return GroupedOpenApi.builder()
                 .group("public")
-                .packagesToScan("backend.academy.scrapper.controller") // Укажите пакет с контроллерами
+                .packagesToScan("backend.academy.scrapper.controller")
                 .build();
     }
 }

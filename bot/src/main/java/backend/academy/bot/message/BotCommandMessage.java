@@ -3,10 +3,6 @@ package backend.academy.bot.message;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
-/**
- * Класс, содержащий сообщения для команд бота. Этот класс предоставляет статические строки, используемые для ответов на
- * команды бота.
- */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class BotCommandMessage {
 

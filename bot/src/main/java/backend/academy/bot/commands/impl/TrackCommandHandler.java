@@ -15,10 +15,16 @@ public class TrackCommandHandler implements BotCommandHandler {
     private static final Logger logger = LoggerFactory.getLogger(TrackCommandHandler.class);
     private final StateMachine stateMachine;
 
+    /** @param stateMachine Экземпляр машины состояний, используемый для управления состоянием чатов. */
     public TrackCommandHandler(StateMachine stateMachine) {
         this.stateMachine = stateMachine;
     }
 
+    /**
+     * @param chatId Идентификатор чата, в котором была вызвана команда.
+     * @param message Текст сообщения, содержащего команду (не используется в данной реализации).
+     * @return Сообщение пользователю с запросом на ввод ссылки для отслеживания.
+     */
     @Override
     public String handle(Long chatId, String message) {
         logger.atInfo()

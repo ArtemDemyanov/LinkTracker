@@ -3,8 +3,8 @@ package backend.academy.scrapper.controller.request;
 import java.net.URI;
 
 /**
- * Запрос на удаление ссылки.
+ * DTO для представления запроса на удаление ссылки.
  *
- * @param link URL ссылки, которую необходимо удалить.
+ * @param link URI ссылки, подлежащей удалению. Это основной идентификатор ресурса.
  */
 public record RemoveLinkRequest(URI link) {}

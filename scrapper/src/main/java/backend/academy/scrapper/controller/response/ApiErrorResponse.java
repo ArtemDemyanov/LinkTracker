@@ -3,7 +3,7 @@ package backend.academy.scrapper.controller.response;
 import java.util.List;
 
 /**
- * Ответ с информацией об ошибке.
+ * DTO для представления информации об ошибке API.
  *
  * @param description Описание ошибки.
  * @param code Код ошибки.

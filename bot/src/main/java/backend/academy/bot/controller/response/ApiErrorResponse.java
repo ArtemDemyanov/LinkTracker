@@ -3,7 +3,7 @@ package backend.academy.bot.controller.response;
 import java.util.List;
 
 /**
- * Представляет объект ответа с информацией об ошибке. Этот класс используется для передачи деталей ошибки в API.
+ * DTO для представления информации об ошибке API.
  *
  * @param description Описание ошибки.
  * @param code Код ошибки.

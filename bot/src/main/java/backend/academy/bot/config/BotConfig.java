@@ -5,10 +5,11 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
 /**
- * Конфигурация бота. Этот класс содержит настройки бота, такие как токен Telegram.
+ * Конфигурационный класс для бота.
  *
  * @param telegramToken Токен Telegram для доступа к API бота.
+ * @param scrapperUrl URL сервиса-скраппера.
  */
 @Validated
 @ConfigurationProperties(prefix = "app", ignoreUnknownFields = false)
-public record BotConfig(@NotEmpty String telegramToken) {}
+public record BotConfig(@NotEmpty String telegramToken, @NotEmpty String scrapperUrl) {}

@@ -1,9 +1,5 @@
 package backend.academy.bot.state;
 
-/**
- * Перечисление состояний пользователя. Это перечисление определяет возможные состояния, в которых может находиться
- * пользователь при взаимодействии с ботом.
- */
 public enum TrackState {
     /** Состояние бездействия (ожидание команды). */
     IDLE,
@@ -18,5 +14,9 @@ public enum TrackState {
     AWAITING_FILTERS,
 
     /** Состояние ожидания ссылки для удаления. */
-    AWAITING_UNTRACK_LINK
+    AWAITING_UNTRACK_LINK,
+
+    AWAITING_TAG_DECISION,
+
+    AWAITING_TAGS_INPUT
 }

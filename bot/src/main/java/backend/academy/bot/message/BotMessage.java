@@ -1,13 +1,8 @@
 package backend.academy.bot.message;
 
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
+import lombok.experimental.UtilityClass;
 
-/**
- * Класс, содержащий общие сообщения бота. Этот класс предоставляет статические строки, используемые для ответов на
- * различные действия пользователя.
- */
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
+@UtilityClass
 public class BotMessage {
 
     /** Сообщение о неизвестной команде. */

@@ -1,12 +1,32 @@
 app:
-  github-token: ${GITHUB_TOKEN}
-  github-base-url: https://api.github.com
-  stackoverflow-base-url: "https://api.stackexchange.com"
+  github:
+    token: "${GITHUB_TOKEN}"
+    base-url: "https://api.github.com"
+    connection-timeout: 10s
+    read-timeout: 30s
+    max-retries: 3
+    retry-delay: 1s
   stackoverflow:
-    key: ${SO_TOKEN_KEY}
-    access-token: ${SO_ACCESS_TOKEN}
+    base-url: "https://api.stackexchange.com/2.3"
+    connection-timeout: 10s
+    read-timeout: 30s
+    max-retries: 3
+    retry-delay: 1s
+    api:
+      key: "${STACKOVERFLOW_KEY}"
+      access-token: "${STACKOVERFLOW_TOKEN}"
+  scheduling:
+    batch-size: 100
+  app:
+    access-type: "ORM"
+    bot-url: "http://localhost:8080"
 
 spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5433/scrapper
+    username: postgres
+    password: 1097111234
+    driver-class-name: org.postgresql.Driver
   application:
     name: Scrapper
   liquibase:

@@ -11,9 +11,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-/**
- * Фабрика для создания обработчиков команд бота. Этот класс предоставляет доступ к обработчикам команд по их названиям.
- */
 @Component
 public class CommandHandlerFactory {
 
@@ -21,7 +18,7 @@ public class CommandHandlerFactory {
     private final Map<String, BotCommandHandler> handlers = new HashMap<>();
 
     /**
-     * Конструктор класса CommandHandlerFactory. Инициализирует карту обработчиков команд.
+     * Фабрика для создания и управления обработчиками команд бота.
      *
      * @param startCommandHandler Обработчик команды /start.
      * @param helpCommandHandler Обработчик команды /help.
@@ -48,7 +45,7 @@ public class CommandHandlerFactory {
     }
 
     /**
-     * Возвращает обработчик команды по её названию.
+     * Возвращает обработчик для указанной команды.
      *
      * @param command Название команды (например, "/start").
      * @return Обработчик команды или null, если обработчик не найден.
