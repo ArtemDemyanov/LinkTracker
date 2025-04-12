@@ -13,7 +13,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 
 @SpringBootTest
-@TestPropertySource(properties = {"app.app.access-type=ORM", "spring.jpa.hibernate.ddl-auto=validate"})
+@TestPropertySource(
+        properties = {"spring.profiles.active=test", "app.app.access-type=ORM", "spring.jpa.hibernate.ddl-auto=validate"
+        })
 public class ORMLinkServiceTest extends AbstractIntegrationTest {
 
     @Autowired

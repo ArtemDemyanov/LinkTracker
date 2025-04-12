@@ -10,3 +10,4 @@
     <include relativeToChangelogFile="true" file="sql/01-init-tables.sql"/>
 
 </databaseChangeLog>
+

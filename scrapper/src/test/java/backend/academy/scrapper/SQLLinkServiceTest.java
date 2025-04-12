@@ -13,7 +13,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 
 @SpringBootTest
-@TestPropertySource(properties = {"app.app.access-type=SQL", "spring.jpa.hibernate.ddl-auto=none"})
+@TestPropertySource(
+        properties = {"spring.profiles.active=test", "app.app.access-type=SQL", "spring.jpa.hibernate.ddl-auto=validate"
+        })
 public class SQLLinkServiceTest extends AbstractIntegrationTest {
 
     @Autowired
