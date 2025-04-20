@@ -1,7 +1,5 @@
 package backend.academy.bot.commands.impl;
 
-import static backend.academy.bot.message.BotCommandMessage.WELCOME_NEW_USER;
-
 import backend.academy.bot.client.ScrapperClient;
 import backend.academy.bot.commands.BotCommandHandler;
 import org.slf4j.Logger;
@@ -14,24 +12,24 @@ public class StartCommandHandler implements BotCommandHandler {
     private static final Logger logger = LoggerFactory.getLogger(StartCommandHandler.class);
     private final ScrapperClient scrapperClient;
 
-    /** @param scrapperClient Клиент для взаимодействия с сервисом Scrapper. */
     public StartCommandHandler(ScrapperClient scrapperClient) {
         this.scrapperClient = scrapperClient;
     }
 
-    /**
-     * @param chatId Уникальный идентификатор чата, в котором была отправлена команда.
-     * @param message Текст сообщения, содержащий команду /start.
-     * @return Приветственное сообщение для нового пользователя.
-     */
+    @Override
+    public String command() {
+        return "/start";
+    }
+
+    @Override
+    public String description() {
+        return "Регистрация пользователя";
+    }
+
     @Override
     public String handle(Long chatId, String message) {
-        logger.atInfo()
-                .setMessage("Handling /start command")
-                .addKeyValue("chatId", chatId)
-                .log();
-
-        scrapperClient.registerChat(chatId);
-        return WELCOME_NEW_USER;
+        logger.info("Handling /start command for chatId {}", chatId);
+        scrapperClient.registerChat(chatId).subscribe();
+        return "Вы успешно зарегистрировались!\nНажмите /help, чтобы увидеть список команд";
     }
 }

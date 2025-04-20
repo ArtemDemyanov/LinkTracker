@@ -3,8 +3,8 @@ package backend.academy.scrapper;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import backend.academy.scrapper.controller.response.LinkResponse;
-import backend.academy.scrapper.service.LinkService;
+import backend.academy.dto.response.LinkResponse;
+import backend.academy.scrapper.service.link.LinkService;
 import java.net.URI;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
@@ -36,17 +36,20 @@ public class ORMLinkServiceTest extends AbstractIntegrationTest {
         linkService.registerChat(chatId);
 
         URI url = URI.create("https://stackoverflow.com/questions/123");
-        LinkResponse link = new LinkResponse(1L, url, Set.of("java", "spring"), Set.of("filter1"));
+        LinkResponse link =
+                new LinkResponse(null, url, Set.of("java", "spring"), Set.of("filter1")); // <-- null вместо id
 
         linkService.addLink(chatId, link);
 
         Set<LinkResponse> links = linkService.getLinks(chatId);
         assertEquals(1, links.size());
-        assertTrue(links.stream().anyMatch(l -> l.url().equals(url)));
+
+        LinkResponse savedLink = links.iterator().next();
+        assertEquals(url, savedLink.url());
+        assertTrue(savedLink.tags().containsAll(Set.of("java", "spring")));
 
         linkService.removeLink(chatId, url);
-        links = linkService.getLinks(chatId);
-        assertTrue(links.isEmpty());
+        assertTrue(linkService.getLinks(chatId).isEmpty());
     }
 
     @Test
@@ -55,24 +58,20 @@ public class ORMLinkServiceTest extends AbstractIntegrationTest {
         linkService.registerChat(chatId);
 
         URI url = URI.create("https://github.com/user/repo");
-        LinkResponse link = new LinkResponse(1L, url, Set.of("backend"), Set.of("filter2"));
+        LinkResponse link = new LinkResponse(null, url, Set.of("backend"), Set.of("filter2")); // <-- null вместо id
         linkService.addLink(chatId, link);
 
-        // Получаем ID добавленной ссылки
         Set<LinkResponse> links = linkService.getLinks(chatId);
+        assertEquals(1, links.size());
         Long linkId = links.iterator().next().id();
 
-        // Обновляем данные
         String newLastUpdated = "2023-01-01T00:00Z";
         linkService.updateLastUpdated(linkId, newLastUpdated);
-
         String lastUpdated = linkService.getLastUpdated(linkId);
         assertEquals(newLastUpdated, lastUpdated);
 
-        // Обновляем дату активности
         String newLastActivityDate = "2023-01-02T00:00Z";
         linkService.updateLastActivityDate(linkId, newLastActivityDate);
-
         String lastActivityDate = linkService.getLastActivityDate(linkId);
         assertEquals(newLastActivityDate, lastActivityDate);
     }

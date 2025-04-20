@@ -6,6 +6,7 @@ import java.sql.SQLException;
 import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -34,12 +35,14 @@ public class LinkDao {
                 link.updatedAt());
     }
 
-    public Link findByUrl(String url) {
-        return jdbcTemplate.queryForObject("SELECT * FROM link WHERE url = ?", this::mapRowToLink, url);
+    public Optional<Link> findByUrl(String url) {
+        List<Link> links = jdbcTemplate.query("SELECT * FROM link WHERE url = ?", this::mapRowToLink, url);
+        return links.isEmpty() ? Optional.empty() : Optional.of(links.get(0));
     }
 
-    public Link findById(Long id) {
-        return jdbcTemplate.queryForObject("SELECT * FROM link WHERE id = ?", this::mapRowToLink, id);
+    public Optional<Link> findById(Long id) {
+        List<Link> links = jdbcTemplate.query("SELECT * FROM link WHERE id = ?", this::mapRowToLink, id);
+        return links.isEmpty() ? Optional.empty() : Optional.of(links.get(0));
     }
 
     public void delete(Link link) {
@@ -84,17 +87,12 @@ public class LinkDao {
                 + "JOIN tag t ON lt.tag_id = t.id "
                 + "WHERE cl.chat_id = :chatId "
                 + "AND lt.chat_id = :chatId "
-                + "AND t.name IN (:tags) "
-                + "GROUP BY l.id");
+                + "AND t.name IN (:tags) ");
 
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("chatId", chatId);
         params.addValue("tags", tags);
 
         return namedParameterJdbcTemplate.query(sql, params, this::mapRowToLink);
-    }
-
-    public void delete(Long linkId) {
-        jdbcTemplate.update("DELETE FROM link WHERE id = ?", linkId);
     }
 }

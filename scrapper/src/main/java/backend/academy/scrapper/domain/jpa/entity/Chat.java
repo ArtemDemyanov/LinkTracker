@@ -18,15 +18,16 @@ import lombok.Setter;
 
 @Getter
 @Setter
-@EqualsAndHashCode
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @Table(name = "chat")
 public class Chat {
 
     @Id
     @Column(name = "id", nullable = false)
+    @EqualsAndHashCode.Include
     private Long id;
 
     @ManyToMany(fetch = FetchType.LAZY)

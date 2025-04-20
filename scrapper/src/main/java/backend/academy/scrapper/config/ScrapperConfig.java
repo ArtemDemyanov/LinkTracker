@@ -15,7 +15,8 @@ public record ScrapperConfig(
         GitHubProperties github,
         StackOverflowProperties stackoverflow,
         SchedulingProperties scheduling) {
-    public record AppProperties(@NotEmpty String accessType, @NotEmpty String botUrl) {}
+    public record AppProperties(
+            @NotEmpty String accessType, @NotEmpty String botUrl, @NotEmpty String messageTransport) {}
 
     public record GitHubProperties(
             @NotEmpty String token,

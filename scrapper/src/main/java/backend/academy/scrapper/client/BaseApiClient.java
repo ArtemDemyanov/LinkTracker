@@ -3,6 +3,7 @@ package backend.academy.scrapper.client;
 import io.netty.channel.ChannelOption;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import java.time.Duration;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
@@ -16,16 +17,24 @@ public abstract class BaseApiClient {
     protected final WebClient webClient;
 
     protected BaseApiClient(
-            WebClient.Builder webClientBuilder, String baseUrl, Duration connectionTimeout, Duration readTimeout) {
-
+            WebClient.Builder webClientBuilder,
+            String baseUrl,
+            Duration connectionTimeout,
+            Duration readTimeout,
+            Map<String, String> defaultHeaders) {
         HttpClient httpClient = createHttpClient(connectionTimeout, readTimeout);
 
-        this.webClient = webClientBuilder
+        WebClient.Builder builder = webClientBuilder
                 .baseUrl(baseUrl)
                 .clientConnector(new ReactorClientHttpConnector(httpClient))
                 .filter(logRequest())
-                .filter(logResponse())
-                .build();
+                .filter(logResponse());
+
+        if (defaultHeaders != null) {
+            defaultHeaders.forEach(builder::defaultHeader);
+        }
+
+        this.webClient = builder.build();
     }
 
     protected HttpClient createHttpClient(Duration connectionTimeout, Duration readTimeout) {

@@ -13,23 +13,23 @@ public class ListCommandHandler implements BotCommandHandler {
     private static final Logger logger = LoggerFactory.getLogger(ListCommandHandler.class);
     private final StateMachine stateMachine;
 
-    /** @param stateMachine Экземпляр машины состояний, используемый для управления состоянием чатов. */
     public ListCommandHandler(StateMachine stateMachine) {
         this.stateMachine = stateMachine;
     }
 
-    /**
-     * @param chatId Идентификатор чата, в котором была вызвана команда.
-     * @param message Текст сообщения, содержащего команду (не используется в данной реализации).
-     * @return Сообщение пользователю с запросом на вывод ссылок по тегам.
-     */
+    @Override
+    public String command() {
+        return "/list";
+    }
+
+    @Override
+    public String description() {
+        return "Показать список отслеживаемых ссылок";
+    }
+
     @Override
     public String handle(Long chatId, String message) {
-        logger.atInfo()
-                .setMessage("Обработка команды /list")
-                .addKeyValue("chatId", chatId)
-                .log();
-
+        logger.info("Handling /list command for chatId {}", chatId);
         stateMachine.setState(chatId, TrackState.AWAITING_TAG_DECISION);
         return "Вывести ссылки по тегам? (да/нет)";
     }

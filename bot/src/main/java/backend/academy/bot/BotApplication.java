@@ -10,10 +10,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.stereotype.Component;
 
 @SpringBootApplication
 @EnableConfigurationProperties(BotConfig.class)
+@EnableCaching
 public class BotApplication {
     public static void main(String[] args) {
         SpringApplication.run(BotApplication.class, args);

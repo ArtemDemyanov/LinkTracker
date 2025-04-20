@@ -1,16 +1,18 @@
 package backend.academy.scrapper.client;
 
+import backend.academy.scrapper.client.dto.stackoverflow.Answer;
+import backend.academy.scrapper.client.dto.stackoverflow.AnswerResponse;
+import backend.academy.scrapper.client.dto.stackoverflow.Comment;
+import backend.academy.scrapper.client.dto.stackoverflow.CommentResponse;
 import backend.academy.scrapper.config.ScrapperConfig;
 import backend.academy.scrapper.config.ScrapperConfig.StackOverflowProperties;
 import backend.academy.scrapper.config.ScrapperConfig.StackOverflowProperties.ApiCredentials;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import java.net.URI;
 import java.time.Instant;
-import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.Getter;
-import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatusCode;
@@ -33,15 +35,14 @@ public class StackOverflowClient extends BaseApiClient {
                 webClientBuilder,
                 config.stackoverflow().baseUrl(),
                 config.stackoverflow().connectionTimeout(),
-                config.stackoverflow().readTimeout());
+                config.stackoverflow().readTimeout(),
+                Map.of(
+                        "Accept",
+                        MediaType.APPLICATION_JSON_VALUE,
+                        "Authorization",
+                        "Bearer " + config.stackoverflow().api().accessToken()));
         this.properties = config.stackoverflow();
         this.apiCredentials = properties.api();
-
-        this.webClient
-                .mutate()
-                .defaultHeader("Accept", MediaType.APPLICATION_JSON_VALUE)
-                .defaultHeader("Authorization", "Bearer " + apiCredentials.accessToken())
-                .build();
     }
 
     /**
@@ -149,52 +150,6 @@ public class StackOverflowClient extends BaseApiClient {
         return response.bodyToMono(String.class)
                 .flatMap(body -> Mono.error(new StackOverflowClientException(
                         "StackOverflow API error: " + response.statusCode() + " - " + body, response.statusCode())));
-    }
-
-    @Getter
-    @Setter
-    public static class AnswerResponse {
-        @JsonProperty("items")
-        private List<Answer> items = Collections.emptyList();
-    }
-
-    @Getter
-    @Setter
-    public static class CommentResponse {
-        @JsonProperty("items")
-        private List<Comment> items = Collections.emptyList();
-    }
-
-    public static class Answer {
-        @JsonProperty("creation_date")
-        public long creationDate;
-
-        public String body = "";
-
-        public Owner owner = new Owner();
-
-        @JsonProperty("answer_id")
-        public long answerId;
-    }
-
-    public static class Comment {
-        @JsonProperty("creation_date")
-        public long creationDate;
-
-        public String body = "";
-
-        public Owner owner = new Owner();
-
-        @JsonProperty("comment_id")
-        public long commentId;
-    }
-
-    public static class Owner {
-        @JsonProperty("display_name")
-        public String displayName;
-
-        @JsonProperty("user_id")
-        public long userId;
     }
 
     @Getter

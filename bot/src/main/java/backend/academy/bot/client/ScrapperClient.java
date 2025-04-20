@@ -1,10 +1,10 @@
 package backend.academy.bot.client;
 
-import backend.academy.bot.client.request.AddLinkRequest;
-import backend.academy.bot.client.request.RemoveLinkRequest;
-import backend.academy.bot.client.response.LinkResponse;
-import backend.academy.bot.client.response.ListLinksResponse;
 import backend.academy.bot.config.BotConfig;
+import backend.academy.dto.request.AddLinkRequest;
+import backend.academy.dto.request.RemoveLinkRequest;
+import backend.academy.dto.response.LinkResponse;
+import backend.academy.dto.response.ListLinksResponse;
 import java.net.URI;
 import java.util.Collections;
 import java.util.List;

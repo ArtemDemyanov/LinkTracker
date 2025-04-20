@@ -1,11 +1,11 @@
 package backend.academy.scrapper.controller;
 
-import backend.academy.scrapper.controller.request.AddLinkRequest;
-import backend.academy.scrapper.controller.request.RemoveLinkRequest;
-import backend.academy.scrapper.controller.response.ApiErrorResponse;
-import backend.academy.scrapper.controller.response.LinkResponse;
-import backend.academy.scrapper.controller.response.ListLinksResponse;
-import backend.academy.scrapper.service.LinkService;
+import backend.academy.dto.request.AddLinkRequest;
+import backend.academy.dto.request.RemoveLinkRequest;
+import backend.academy.dto.response.ApiErrorResponse;
+import backend.academy.dto.response.LinkResponse;
+import backend.academy.dto.response.ListLinksResponse;
+import backend.academy.scrapper.service.link.LinkService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;

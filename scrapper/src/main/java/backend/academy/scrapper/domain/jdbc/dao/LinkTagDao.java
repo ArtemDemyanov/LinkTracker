@@ -42,8 +42,4 @@ public class LinkTagDao {
     private LinkTag mapRowToLinkTag(ResultSet rs, @SuppressWarnings("unused") int rowNum) throws SQLException {
         return new LinkTag(rs.getLong("id"), rs.getLong("link_id"), rs.getLong("tag_id"), rs.getLong("chat_id"));
     }
-
-    public void deleteByChatId(Long chatId) {
-        jdbcTemplate.update("DELETE FROM link_tag WHERE chat_id = ?", chatId);
-    }
 }

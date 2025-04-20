@@ -20,11 +20,10 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
-import lombok.ToString;
+import org.hibernate.annotations.CreationTimestamp;
 
 @Getter
 @Setter
-@ToString
 @RequiredArgsConstructor
 @AllArgsConstructor
 @Entity
@@ -40,11 +39,12 @@ public class Link {
     @Convert(converter = UriConverter.class)
     private URI url;
 
-    @Column(name = "created_at", nullable = false)
-    private OffsetDateTime createdAt;
-
     @Column(name = "checked_at", nullable = false)
     private OffsetDateTime checkedAt;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    @CreationTimestamp
+    private OffsetDateTime createdAt;
 
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;

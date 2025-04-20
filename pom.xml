@@ -17,6 +17,7 @@
 
     <modules>
         <module>bot</module>
+        <module>dto</module>
         <module>migrations</module>
         <module>report</module>
         <module>scrapper</module>

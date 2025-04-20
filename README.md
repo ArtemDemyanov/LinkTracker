@@ -12,49 +12,147 @@
 
 ### 1. Конфигурация приложения
 
-Создайте файл application.yml в src/main/resources:
+Создайте файл application.yml в scrapper/src/main/resources:
 
 ```
 app:
-telegram:
-token: "ВАШ_TELEGRAM_BOT_TOKEN"
-username: "ВашBotName"
-
 github:
-token: "ваш_github_token"
-
+token: "${GITHUB_TOKEN}"
+base-url: "https://api.github.com"
+connection-timeout: 10s
+read-timeout: 30s
+max-retries: 3
+retry-delay: 1s
 stackoverflow:
-key: "ваш_stackoverflow_key"
-accessToken: "ваш_stackoverflow_token"
-
-scheduler:
-batch-size: 100      # Размер пакета для обработки
-check-interval: 300  # Интервал проверки в секундах
+base-url: "https://api.stackexchange.com/2.3"
+connection-timeout: 10s
+read-timeout: 30s
+max-retries: 3
+retry-delay: 1s
+api:
+key: "${SO_TOKEN_KEY}"
+access-token: "${SO_ACCESS_TOKEN}"
+scheduling:
+batch-size: 100
+app:
+access-type: "ORM"
+bot-url: "http://localhost:8080"
+message-transport: KAFKA
 
 spring:
 datasource:
-url: jdbc:postgresql://localhost:5432/linktracker
+url: jdbc:postgresql://localhost:5433/your_database_name
 username: postgres
 password: postgres
+driver-class-name: org.postgresql.Driver
+application:
+name: Scrapper
+liquibase:
+enabled: false
 jpa:
 hibernate:
 ddl-auto: validate
+open-in-view: false
+
+server:
+port: 8081
+
+springdoc:
+swagger-ui:
+enabled: true
+path: /swagger-ui
+
+kafka:
+bootstrap-servers: localhost:9092
+topics:
+updates: link-updates
+dlq: link-updates-dlq
 ```
 
-### 2. Запуск PostgreSQL через Docker
+Создайте файл application.yml в bot/src/main/resources:
+
+```
+app:
+telegram-token: ${TELEGRAM_TOKEN} # env variable
+scrapper-url: http://localhost:8081
+message-transport: KAFKA
+
+spring:
+application:
+name: Bot
+liquibase:
+enabled: false
+jpa:
+hibernate:
+ddl-auto: validate
+open-in-view: false
+cache:
+type: redis
+data:
+redis:
+host: localhost
+port: 6379
+
+kafka:
+bootstrap-servers: localhost:9092
+topics:
+updates: link-updates
+dlq: link-updates-dlq
+
+server:
+port: 8080
+
+springdoc:
+swagger-ui:
+enabled: true
+path: /swagger-ui
+### 2. Запуск PostgreSQL, Kafka через Docker
+```
 
 Создайте docker-compose.yml:
 
-```postgresql:
+```
+services:
+
+postgresql:
 image: postgres:17
 ports:
 - "5433:5432"
 environment:
-POSTGRES_DB: scrapper
+POSTGRES_DB: database_name
 POSTGRES_USER: postgres
 POSTGRES_PASSWORD: postgres
+#    volumes:
+#      - postgresql:/var/lib/postgresql/data
 networks:
 - backend
+
+zookeeper:
+image: confluentinc/cp-zookeeper:7.3.0
+environment:
+ZOOKEEPER_CLIENT_PORT: 2181
+ZOOKEEPER_TICK_TIME: 2000
+ports:
+- "2181:2181"
+
+kafka:
+image: confluentinc/cp-kafka:7.3.0
+depends_on:
+- zookeeper
+ports:
+- "9092:9092"
+environment:
+KAFKA_BROKER_ID: 1
+KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+volumes:
+postgresql_data:
+pgadmin-data:
+
+networks:
+backend:
 ```
 
 ### 3. Запуск миграций через Docker
@@ -72,7 +170,7 @@ depends_on:
 command:
 - --changelog-file=master.xml
 - --driver=org.postgresql.Driver
-- --url=jdbc:postgresql://postgresql:5432/scrapper
+- --url=jdbc:postgresql://postgresql:5432/your_database_name
 - --username=postgres
 - --password=postgres
 - update

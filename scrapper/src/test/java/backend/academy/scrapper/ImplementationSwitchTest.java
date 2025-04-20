@@ -2,9 +2,9 @@ package backend.academy.scrapper;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import backend.academy.scrapper.service.LinkService;
-import backend.academy.scrapper.service.ORMLinkService;
-import backend.academy.scrapper.service.SQLLinkService;
+import backend.academy.scrapper.service.link.LinkService;
+import backend.academy.scrapper.service.link.ORMLinkService;
+import backend.academy.scrapper.service.link.SQLLinkService;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

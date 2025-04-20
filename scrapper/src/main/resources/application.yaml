@@ -18,8 +18,16 @@ app:
   scheduling:
     batch-size: 100
   app:
-    access-type: "ORM"
+    access-type: "SQL"
     bot-url: "http://localhost:8080"
+    message-transport: KAFKA
+
+
+kafka:
+  bootstrap-servers: localhost:9092
+  topics:
+    updates: link-updates
+    dlq: link-updates-dlq
 
 spring:
   datasource:

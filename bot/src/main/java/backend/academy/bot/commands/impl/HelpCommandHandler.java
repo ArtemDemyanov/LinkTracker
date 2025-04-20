@@ -1,29 +1,31 @@
 package backend.academy.bot.commands.impl;
 
-import static backend.academy.bot.message.BotCommandMessage.HELP_COMMAND;
-
 import backend.academy.bot.commands.BotCommandHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import backend.academy.bot.commands.CommandHandlerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 
 @Component
 public class HelpCommandHandler implements BotCommandHandler {
 
-    private static final Logger logger = LoggerFactory.getLogger(HelpCommandHandler.class);
+    private final ObjectProvider<CommandHandlerFactory> commandHandlerFactoryProvider;
 
-    /**
-     * @param chatId Уникальный идентификатор чата, в котором была отправлена команда.
-     * @param message Текст сообщения, содержащий команду /help.
-     * @return Строка с описанием доступных команд.
-     */
+    public HelpCommandHandler(ObjectProvider<CommandHandlerFactory> commandHandlerFactoryProvider) {
+        this.commandHandlerFactoryProvider = commandHandlerFactoryProvider;
+    }
+
     @Override
     public String handle(Long chatId, String message) {
-        logger.atInfo()
-                .setMessage("Handling /help command")
-                .addKeyValue("chatId", chatId)
-                .log();
+        return commandHandlerFactoryProvider.getObject().availableCommands();
+    }
 
-        return HELP_COMMAND;
+    @Override
+    public String command() {
+        return "/help";
+    }
+
+    @Override
+    public String description() {
+        return "Показать список команд";
     }
 }

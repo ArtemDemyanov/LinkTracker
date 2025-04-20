@@ -9,7 +9,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-@EqualsAndHashCode
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
@@ -18,6 +18,7 @@ public class LinkTag {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private Long id;
 
     @ManyToOne
@@ -29,5 +30,6 @@ public class LinkTag {
     private Tag tag;
 
     @Column(name = "chat_id", nullable = false)
+    @EqualsAndHashCode.Include
     private Long chatId;
 }

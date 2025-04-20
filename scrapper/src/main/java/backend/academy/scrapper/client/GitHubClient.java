@@ -1,10 +1,11 @@
 package backend.academy.scrapper.client;
 
-import backend.academy.scrapper.client.dto.GitHubItem;
+import backend.academy.scrapper.client.dto.github.GitHubItem;
 import backend.academy.scrapper.config.ScrapperConfig;
 import backend.academy.scrapper.config.ScrapperConfig.GitHubProperties;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,13 +30,9 @@ public class GitHubClient extends BaseApiClient {
                 webClientBuilder,
                 config.github().baseUrl(),
                 config.github().connectionTimeout(),
-                config.github().readTimeout());
+                config.github().readTimeout(),
+                Map.of("Authorization", "Bearer " + config.github().token()));
         this.properties = config.github();
-
-        this.webClient
-                .mutate()
-                .defaultHeader("Authorization", "Bearer " + properties.token())
-                .build();
     }
 
     /**

@@ -1,7 +1,7 @@
 package backend.academy.scrapper.controller;
 
-import backend.academy.scrapper.controller.response.ApiErrorResponse;
-import backend.academy.scrapper.service.LinkService;
+import backend.academy.dto.response.ApiErrorResponse;
+import backend.academy.scrapper.service.link.LinkService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
