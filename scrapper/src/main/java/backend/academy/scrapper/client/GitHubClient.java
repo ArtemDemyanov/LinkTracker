@@ -2,7 +2,10 @@ package backend.academy.scrapper.client;
 
 import backend.academy.scrapper.client.dto.github.GitHubItem;
 import backend.academy.scrapper.config.ScrapperConfig;
-import backend.academy.scrapper.config.ScrapperConfig.GitHubProperties;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.reactor.retry.RetryOperator;
+import io.github.resilience4j.retry.Retry;
+import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -14,36 +17,22 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
-import reactor.util.retry.Retry;
 
 @Component
 public class GitHubClient extends BaseApiClient {
     private static final Logger logger = LoggerFactory.getLogger(GitHubClient.class);
-    private final GitHubProperties properties;
+    private final Retry githubRetry;
 
-    /**
-     * @param webClientBuilder Строитель для создания экземпляра WebClient.
-     * @param config Конфигурация приложения, содержащая настройки для GitHub API.
-     */
-    public GitHubClient(WebClient.Builder webClientBuilder, ScrapperConfig config) {
+    public GitHubClient(WebClient.Builder webClientBuilder, ScrapperConfig config, Retry githubRetry) {
         super(
                 webClientBuilder,
                 config.github().baseUrl(),
-                config.github().connectionTimeout(),
-                config.github().readTimeout(),
                 Map.of("Authorization", "Bearer " + config.github().token()));
-        this.properties = config.github();
+        this.githubRetry = githubRetry;
     }
 
-    /**
-     * Выполняет запрос к GitHub API для получения элементов репозитория.
-     *
-     * @param endpoint Конечная точка API (например, issues, pull requests).
-     * @param owner Владелец репозитория.
-     * @param repo Название репозитория.
-     * @param afterTime Время, после которого должны быть созданы элементы.
-     * @return Mono<List<GitHubItem>> Список элементов, соответствующих условиям фильтрации.
-     */
+    @TimeLimiter(name = "githubClient")
+    @CircuitBreaker(name = "githubClient", fallbackMethod = "fallbackGitHubItems")
     public Mono<List<GitHubItem>> fetchGitHubItems(String endpoint, String owner, String repo, Instant afterTime) {
         return webClient
                 .get()
@@ -58,52 +47,30 @@ public class GitHubClient extends BaseApiClient {
                 .bodyToFlux(GitHubItem.class)
                 .filter(item -> item.createdAt().isAfter(afterTime))
                 .collectList()
-                .retryWhen(createRetryPolicy());
+                .transformDeferred(RetryOperator.of(githubRetry));
     }
 
-    /**
-     * Создает политику повторных попыток для запросов к GitHub API.
-     *
-     * @return Retry Политика повторных попыток с экспоненциальным откатом.
-     */
-    private Retry createRetryPolicy() {
-        return Retry.backoff(properties.maxRetries(), properties.retryDelay())
-                .doBeforeRetry(retry -> logger.warn("Retrying GitHub API call, attempt {}", retry.totalRetries() + 1));
+    @SuppressWarnings("unused")
+    private Mono<List<GitHubItem>> fallbackGitHubItems(
+            String endpoint, String owner, String repo, Instant afterTime, Throwable throwable) {
+        logger.error("Fallback triggered for GitHubClient on {}/{} due to: {}", owner, repo, throwable.toString());
+        return Mono.just(List.of());
     }
 
-    /**
-     * Проверяет, является ли HTTP-статус ошибкой.
-     *
-     * @param status HTTP-статус ответа.
-     * @return true, если статус указывает на ошибку клиента или сервера; иначе false.
-     */
     private boolean isError(HttpStatusCode status) {
         return status.is4xxClientError() || status.is5xxServerError();
     }
 
-    /**
-     * Обрабатывает ошибки, возникающие при выполнении запроса к GitHub API.
-     *
-     * @param response Ответ от сервера, содержащий информацию об ошибке.
-     * @return Mono<Throwable> Исключение, содержащее детали ошибки.
-     */
     private Mono<Throwable> handleError(ClientResponse response) {
         return response.bodyToMono(String.class)
                 .flatMap(body -> Mono.error(new GitHubApiException(
                         "GitHub API error: " + response.statusCode() + " - " + body, response.statusCode())));
     }
 
-    /** Исключение, представляющее ошибку при взаимодействии с GitHub API. */
     @Getter
     public static class GitHubApiException extends RuntimeException {
         private final HttpStatusCode statusCode;
 
-        /**
-         * Конструктор исключения.
-         *
-         * @param message Сообщение об ошибке.
-         * @param statusCode HTTP-статус код ошибки.
-         */
         public GitHubApiException(String message, HttpStatusCode statusCode) {
             super(message);
             this.statusCode = statusCode;

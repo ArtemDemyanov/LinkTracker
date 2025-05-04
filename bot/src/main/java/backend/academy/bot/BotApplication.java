@@ -1,6 +1,7 @@
 package backend.academy.bot;
 
 import backend.academy.bot.config.BotConfig;
+import backend.academy.bot.config.RateLimitingProperties;
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.model.BotCommand;
 import com.pengrad.telegrambot.request.SetMyCommands;
@@ -11,10 +12,12 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.stereotype.Component;
 
 @SpringBootApplication
-@EnableConfigurationProperties(BotConfig.class)
+@EnableAspectJAutoProxy
+@EnableConfigurationProperties({BotConfig.class, RateLimitingProperties.class})
 @EnableCaching
 public class BotApplication {
     public static void main(String[] args) {

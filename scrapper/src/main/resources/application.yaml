@@ -2,16 +2,8 @@ app:
   github:
     token: "${GITHUB_TOKEN}"
     base-url: "https://api.github.com"
-    connection-timeout: 10s
-    read-timeout: 30s
-    max-retries: 3
-    retry-delay: 1s
   stackoverflow:
     base-url: "https://api.stackexchange.com/2.3"
-    connection-timeout: 10s
-    read-timeout: 30s
-    max-retries: 3
-    retry-delay: 1s
     api:
       key: "${STACKOVERFLOW_KEY}"
       access-token: "${STACKOVERFLOW_TOKEN}"
@@ -51,3 +43,28 @@ springdoc:
   swagger-ui:
     enabled: true
     path: /swagger-ui
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      githubClient:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 1
+        minimum-number-of-calls: 1
+        failure-rate-threshold: 100
+        permitted-number-of-calls-in-half-open-state: 1
+        wait-duration-in-open-state: 1s
+      stackOverflowClient:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 1
+        minimum-number-of-calls: 1
+        failure-rate-threshold: 100
+        permitted-number-of-calls-in-half-open-state: 1
+        wait-duration-in-open-state: 1s
+
+  timelimiter:
+    instances:
+      githubClient:
+        timeout-duration: 2s
+      stackOverflowClient:
+        timeout-duration: 2s

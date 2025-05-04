@@ -32,3 +32,23 @@ springdoc:
   swagger-ui:
     enabled: true
     path: /swagger-ui
+
+resilience4j:
+  timelimiter:
+    instances:
+      scrapperClient:
+        timeout-duration: 2s
+
+  circuitbreaker:
+    instances:
+      scrapperClient:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 1
+        minimum-number-of-calls: 1
+        failure-rate-threshold: 100
+        permitted-number-of-calls-in-half-open-state: 1
+        wait-duration-in-open-state: 1s
+
+rate-limiting:
+  enabled: true
+  requests-per-minute: 60

@@ -5,6 +5,10 @@ import backend.academy.dto.request.AddLinkRequest;
 import backend.academy.dto.request.RemoveLinkRequest;
 import backend.academy.dto.response.LinkResponse;
 import backend.academy.dto.response.ListLinksResponse;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.reactor.retry.RetryOperator;
+import io.github.resilience4j.retry.Retry;
+import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import java.net.URI;
 import java.util.Collections;
 import java.util.List;
@@ -22,39 +26,30 @@ import reactor.core.publisher.Mono;
 public class ScrapperClient {
     private static final Logger logger = LoggerFactory.getLogger(ScrapperClient.class);
     private final WebClient webClient;
+    private final Retry retry;
 
-    /**
-     * Конструктор клиента Scrapper.
-     *
-     * @param webClientBuilder билдер для создания WebClient
-     * @param botConfig конфигурация бота, содержащая базовый URL Scrapper
-     */
-    public ScrapperClient(WebClient.Builder webClientBuilder, BotConfig botConfig) {
+    public ScrapperClient(
+            WebClient.Builder webClientBuilder,
+            BotConfig botConfig,
+            io.github.resilience4j.retry.RetryRegistry retryRegistry) {
         this.webClient = webClientBuilder.baseUrl(botConfig.scrapperUrl()).build();
+        this.retry = retryRegistry.retry("scrapperClient");
     }
 
-    /**
-     * Регистрирует чат в Scrapper.
-     *
-     * @param chatId идентификатор чата для регистрации
-     * @return Mono<Void>, завершающийся при успешной регистрации
-     */
+    @TimeLimiter(name = "scrapperClient")
+    @CircuitBreaker(name = "scrapperClient", fallbackMethod = "fallbackVoid")
     public Mono<Void> registerChat(Long chatId) {
         return webClient
                 .post()
                 .uri("/Tg-Chat-Id/{id}", chatId)
                 .retrieve()
                 .bodyToMono(Void.class)
+                .transformDeferred(RetryOperator.of(retry))
                 .doOnSubscribe(s -> logger.info("Регистрация чата chatId: {}", chatId));
     }
 
-    /**
-     * Добавляет ссылку для отслеживания в указанном чате.
-     *
-     * @param chatId идентификатор чата, в который добавляется ссылка
-     * @param link данные ссылки для добавления (URL, теги, фильтры)
-     * @return Mono<LinkResponse> с информацией о добавленной ссылке
-     */
+    @TimeLimiter(name = "scrapperClient")
+    @CircuitBreaker(name = "scrapperClient", fallbackMethod = "fallbackLinkResponse")
     public Mono<LinkResponse> addLink(Long chatId, LinkResponse link) {
         return webClient
                 .post()
@@ -63,16 +58,12 @@ public class ScrapperClient {
                 .bodyValue(new AddLinkRequest(link.url(), link.tags(), link.filters()))
                 .retrieve()
                 .bodyToMono(LinkResponse.class)
+                .transformDeferred(RetryOperator.of(retry))
                 .doOnSubscribe(s -> logger.info("Добавление ссылки chatId: {}, url: {}", chatId, link.url()));
     }
 
-    /**
-     * Удаляет ссылку из отслеживания в указанном чате.
-     *
-     * @param chatId идентификатор чата, из которого удаляется ссылка
-     * @param urlToRemove URL ссылки для удаления
-     * @return Mono<Void>, завершающийся при успешном удалении
-     */
+    @TimeLimiter(name = "scrapperClient")
+    @CircuitBreaker(name = "scrapperClient", fallbackMethod = "fallbackVoid")
     public Mono<Void> removeLink(Long chatId, URI urlToRemove) {
         RemoveLinkRequest request = new RemoveLinkRequest(urlToRemove);
 
@@ -84,16 +75,13 @@ public class ScrapperClient {
                 .bodyValue(request)
                 .retrieve()
                 .bodyToMono(Void.class)
+                .transformDeferred(RetryOperator.of(retry))
                 .doOnSubscribe(s -> logger.info("Удаление ссылки chatId: {}, url: {}", chatId, urlToRemove))
                 .doOnError(e -> logger.error("Ошибка при удалении ссылки chatId: {}, url: {}", chatId, urlToRemove, e));
     }
 
-    /**
-     * Получает все отслеживаемые ссылки для указанного чата.
-     *
-     * @param chatId идентификатор чата
-     * @return Mono<List<LinkResponse>> со списком всех ссылок чата
-     */
+    @TimeLimiter(name = "scrapperClient")
+    @CircuitBreaker(name = "scrapperClient", fallbackMethod = "fallbackLinkList")
     public Mono<List<LinkResponse>> getLinks(Long chatId) {
         return webClient
                 .get()
@@ -103,15 +91,12 @@ public class ScrapperClient {
                 .bodyToMono(ListLinksResponse.class)
                 .map(ListLinksResponse::links)
                 .defaultIfEmpty(Collections.emptyList())
+                .transformDeferred(RetryOperator.of(retry))
                 .doOnSubscribe(s -> logger.info("Получение списка ссылок chatId: {}", chatId));
     }
 
-    /**
-     * Получает все теги для указанного чата.
-     *
-     * @param chatId идентификатор чата
-     * @return Mono<Set<String>> с набором всех тегов чата
-     */
+    @TimeLimiter(name = "scrapperClient")
+    @CircuitBreaker(name = "scrapperClient", fallbackMethod = "fallbackStringSet")
     public Mono<Set<String>> getAllTags(Long chatId) {
         return webClient
                 .get()
@@ -120,16 +105,12 @@ public class ScrapperClient {
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<Set<String>>() {})
                 .defaultIfEmpty(Collections.emptySet())
+                .transformDeferred(RetryOperator.of(retry))
                 .doOnSubscribe(s -> logger.info("Получение всех тегов chatId: {}", chatId));
     }
 
-    /**
-     * Получает ссылки по указанным тегам для заданного чата.
-     *
-     * @param chatId идентификатор чата
-     * @param tags набор тегов для фильтрации ссылок
-     * @return Mono<List<LinkResponse>> со списком ссылок, соответствующих тегам
-     */
+    @TimeLimiter(name = "scrapperClient")
+    @CircuitBreaker(name = "scrapperClient", fallbackMethod = "fallbackLinkListWithTags")
     public Mono<List<LinkResponse>> getLinksByTags(Long chatId, Set<String> tags) {
         return webClient
                 .get()
@@ -142,6 +123,41 @@ public class ScrapperClient {
                 .bodyToMono(ListLinksResponse.class)
                 .map(ListLinksResponse::links)
                 .defaultIfEmpty(Collections.emptyList())
+                .transformDeferred(RetryOperator.of(retry))
                 .doOnSubscribe(s -> logger.info("Получение ссылок по тегам chatId: {}, tags: {}", chatId, tags));
+    }
+
+    // Fallback-методы
+
+    @SuppressWarnings("unused")
+    private Mono<Void> fallbackVoid(Long chatId, Throwable throwable) {
+        logger.warn(
+                "Fallback triggered for void-returning method, chatId: {}, error: {}", chatId, throwable.getMessage());
+        return Mono.empty();
+    }
+
+    @SuppressWarnings("unused")
+    private Mono<LinkResponse> fallbackLinkResponse(Long chatId, LinkResponse link, Throwable throwable) {
+        logger.warn("Fallback for addLink chatId: {}, url: {}, error: {}", chatId, link.url(), throwable.getMessage());
+        return Mono.error(throwable);
+    }
+
+    @SuppressWarnings("unused")
+    private Mono<List<LinkResponse>> fallbackLinkList(Long chatId, Throwable throwable) {
+        logger.warn("Fallback for getLinks chatId: {}, error: {}", chatId, throwable.getMessage());
+        return Mono.just(Collections.emptyList());
+    }
+
+    @SuppressWarnings("unused")
+    private Mono<List<LinkResponse>> fallbackLinkListWithTags(Long chatId, Set<String> tags, Throwable throwable) {
+        logger.warn(
+                "Fallback for getLinksByTags chatId: {}, tags: {}, error: {}", chatId, tags, throwable.getMessage());
+        return Mono.just(Collections.emptyList());
+    }
+
+    @SuppressWarnings("unused")
+    private Mono<Set<String>> fallbackStringSet(Long chatId, Throwable throwable) {
+        logger.warn("Fallback for getAllTags chatId: {}, error: {}", chatId, throwable.getMessage());
+        return Mono.just(Collections.emptySet());
     }
 }

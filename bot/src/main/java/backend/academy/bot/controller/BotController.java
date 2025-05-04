@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@ConditionalOnProperty(name = "app.app.message-transport", havingValue = "HTTP")
+@ConditionalOnProperty(name = "app.message-transport", havingValue = "HTTP")
 public class BotController {
 
     private static final Logger logger = LoggerFactory.getLogger(BotController.class);
@@ -36,7 +36,6 @@ public class BotController {
      * Отправляет уведомления об обновлении ссылки пользователям Telegram.
      *
      * @param linkUpdate Объект, содержащий информацию об обновлении ссылки.
-     * @return Ответ с кодом состояния HTTP 200, если уведомления успешно отправлены.
      */
     @Operation(summary = "Отправить обновление")
     @ApiResponse(

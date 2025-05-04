@@ -5,8 +5,11 @@ import backend.academy.scrapper.client.dto.stackoverflow.AnswerResponse;
 import backend.academy.scrapper.client.dto.stackoverflow.Comment;
 import backend.academy.scrapper.client.dto.stackoverflow.CommentResponse;
 import backend.academy.scrapper.config.ScrapperConfig;
-import backend.academy.scrapper.config.ScrapperConfig.StackOverflowProperties;
 import backend.academy.scrapper.config.ScrapperConfig.StackOverflowProperties.ApiCredentials;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.reactor.retry.RetryOperator;
+import io.github.resilience4j.retry.Retry;
+import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import java.net.URI;
 import java.time.Instant;
 import java.util.List;
@@ -20,38 +23,29 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
-import reactor.util.retry.Retry;
 
 @Component
 public class StackOverflowClient extends BaseApiClient {
     private final ApiCredentials apiCredentials;
-    private final StackOverflowProperties properties;
+    private final Retry stackOverflowRetry;
     private static final Logger logger = LoggerFactory.getLogger(StackOverflowClient.class);
 
-    public StackOverflowClient(WebClient.Builder webClientBuilder, ScrapperConfig config) {
+    public StackOverflowClient(WebClient.Builder webClientBuilder, ScrapperConfig config, Retry stackOverflowRetry) {
         super(
                 webClientBuilder,
                 config.stackoverflow().baseUrl(),
-                config.stackoverflow().connectionTimeout(),
-                config.stackoverflow().readTimeout(),
                 Map.of(
                         "Accept",
                         MediaType.APPLICATION_JSON_VALUE,
                         "Authorization",
                         "Bearer " + config.stackoverflow().api().accessToken()));
-        this.properties = config.stackoverflow();
-        this.apiCredentials = properties.api();
+        this.apiCredentials = config.stackoverflow().api();
+        this.stackOverflowRetry = stackOverflowRetry;
     }
 
-    /**
-     * Получает новые ответы на вопрос с указанным ID, созданные после определенного времени.
-     *
-     * @param questionId ID вопроса на Stack Overflow.
-     * @param since Время, после которого должны быть созданы ответы.
-     * @return Mono<List<Answer>> Список новых ответов.
-     */
+    @TimeLimiter(name = "stackOverflowClient")
+    @CircuitBreaker(name = "stackOverflowClient", fallbackMethod = "fallbackAnswers")
     public Mono<List<Answer>> getNewAnswers(String questionId, Instant since) {
         return webClient
                 .get()
@@ -70,16 +64,11 @@ public class StackOverflowClient extends BaseApiClient {
                 .map(response -> response.items.stream()
                         .filter(a -> Instant.ofEpochSecond(a.creationDate).isAfter(since))
                         .collect(Collectors.toList()))
-                .retryWhen(createRetryPolicy());
+                .transformDeferred(RetryOperator.of(stackOverflowRetry));
     }
 
-    /**
-     * Получает новые комментарии к вопросу с указанным ID, созданные после определенного времени.
-     *
-     * @param questionId ID вопроса на Stack Overflow.
-     * @param since Время, после которого должны быть созданы комментарии.
-     * @return Mono<List<Comment>> Список новых комментариев.
-     */
+    @TimeLimiter(name = "stackOverflowClient")
+    @CircuitBreaker(name = "stackOverflowClient", fallbackMethod = "fallbackComments")
     public Mono<List<Comment>> getNewComments(String questionId, Instant since) {
         return webClient
                 .get()
@@ -98,40 +87,22 @@ public class StackOverflowClient extends BaseApiClient {
                 .map(response -> response.items.stream()
                         .filter(c -> Instant.ofEpochSecond(c.creationDate).isAfter(since))
                         .collect(Collectors.toList()))
-                .retryWhen(createRetryPolicy());
+                .transformDeferred(RetryOperator.of(stackOverflowRetry));
     }
 
-    /**
-     * Создает политику повторных попыток для запросов к Stack Overflow API.
-     *
-     * @return Retry Политика повторных попыток с экспоненциальным откатом.
-     */
-    private Retry createRetryPolicy() {
-        return Retry.backoff(properties.maxRetries(), properties.retryDelay())
-                .filter(this::isRetryableError)
-                .doBeforeRetry(
-                        retry -> logger.warn("Retrying StackOverflow API call, attempt {}", retry.totalRetries() + 1));
+    @SuppressWarnings("unused")
+    private Mono<List<Answer>> fallbackAnswers(String questionId, Instant since, Throwable t) {
+        logger.error("Fallback triggered for getNewAnswers({}, {}): {}", questionId, since, t.toString());
+        return Mono.just(List.of());
     }
 
-    /**
-     * Проверяет, является ли ошибка допустимой для повторной попытки.
-     *
-     * @param throwable Исключение, возникшее при выполнении запроса.
-     * @return true, если ошибка допустима для повторной попытки; иначе false.
-     */
-    private boolean isRetryableError(Throwable throwable) {
-        return throwable instanceof WebClientResponseException response
-                && (response.getStatusCode().is5xxServerError()
-                        || response.getStatusCode() == HttpStatusCode.valueOf(429));
+    @SuppressWarnings("unused")
+    private Mono<List<Comment>> fallbackComments(String questionId, Instant since, Throwable t) {
+        logger.error("Fallback triggered for getNewComments({}, {}): {}", questionId, since, t.toString());
+        return Mono.just(List.of());
     }
 
-    /**
-     * Извлекает ID вопроса из URL Stack Overflow.
-     *
-     * @param url URL вопроса на Stack Overflow.
-     * @return ID вопроса.
-     * @throws StackOverflowClientException Если URL имеет неверный формат.
-     */
+    @SuppressWarnings("unused")
     public String extractQuestionId(URI url) {
         String[] parts = url.getPath().split("/", -1);
         if (parts.length < 3 || !"questions".equals(parts[1])) {
@@ -140,12 +111,7 @@ public class StackOverflowClient extends BaseApiClient {
         return parts[2];
     }
 
-    /**
-     * Обрабатывает ошибки, возникающие при выполнении запроса к Stack Overflow API.
-     *
-     * @param response Ответ от сервера, содержащий информацию об ошибке.
-     * @return Mono<Throwable> Исключение, содержащее детали ошибки.
-     */
+    @SuppressWarnings("unused")
     private Mono<Throwable> handleError(ClientResponse response) {
         return response.bodyToMono(String.class)
                 .flatMap(body -> Mono.error(new StackOverflowClientException(
@@ -156,12 +122,6 @@ public class StackOverflowClient extends BaseApiClient {
     public static class StackOverflowClientException extends RuntimeException {
         private final HttpStatusCode statusCode;
 
-        /**
-         * Конструктор исключения.
-         *
-         * @param message Сообщение об ошибке.
-         * @param statusCode HTTP-статус код ошибки.
-         */
         public StackOverflowClientException(String message, HttpStatusCode statusCode) {
             super(message);
             this.statusCode = statusCode;
