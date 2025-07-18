@@ -61,6 +61,12 @@ resilience4j:
         failure-rate-threshold: 100
         permitted-number-of-calls-in-half-open-state: 1
         wait-duration-in-open-state: 1s
+      notificationTransport:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 5
+        failure-rate-threshold: 50
+        permitted-number-of-calls-in-half-open-state: 1
+        wait-duration-in-open-state: 10s
 
   timelimiter:
     instances:

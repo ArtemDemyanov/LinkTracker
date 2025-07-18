@@ -2,6 +2,7 @@ app:
   telegram-token: ${TELEGRAM_TOKEN} # env variable
   scrapper-url: http://localhost:8081
   message-transport: KAFKA
+  timeout: 5s
 
 spring:
   application:
@@ -33,12 +34,15 @@ springdoc:
     enabled: true
     path: /swagger-ui
 
-resilience4j:
-  timelimiter:
-    instances:
-      scrapperClient:
-        timeout-duration: 2s
+retry:
+  instances:
+    scrapperClient:
+      max-attempts: 3
+      wait-duration: PT1S
+      retryable-statuses: [500, 502, 503, 504, 429]
 
+
+resilience4j:
   circuitbreaker:
     instances:
       scrapperClient:

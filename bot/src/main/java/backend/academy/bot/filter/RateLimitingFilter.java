@@ -3,6 +3,7 @@ package backend.academy.bot.filter;
 import backend.academy.bot.config.RateLimitingProperties;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
+import io.github.bucket4j.ConsumptionProbe;
 import io.github.bucket4j.Refill;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -35,11 +36,15 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         String ip = request.getRemoteAddr();
         Bucket bucket = buckets.computeIfAbsent(ip, this::createNewBucket);
 
-        if (bucket.tryConsume(1)) {
+        ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(1);
+        if (probe.isConsumed()) {
             filterChain.doFilter(request, response);
         } else {
+            long waitForRefillSeconds = Math.max(1, probe.getNanosToWaitForRefill() / 1_000_000_000);
+
             response.setStatus(429);
-            response.getWriter().write("Too many requests - rate limit exceeded");
+            response.setHeader("Retry-After", String.valueOf(waitForRefillSeconds));
+            response.getWriter().write("Too many requests - rate limit exceeded. Try again later.");
         }
     }
 

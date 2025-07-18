@@ -32,7 +32,6 @@ import reactor.test.StepVerifier;
 @ContextConfiguration(initializers = RetryTest.WireMockInit.class)
 class RetryTest {
 
-    // поднимаем WireMock на порте 8081
     @RegisterExtension
     static WireMockExtension wm =
             WireMockExtension.newInstance().options(wireMockConfig().port(8081)).build();
@@ -49,7 +48,6 @@ class RetryTest {
 
     @Test
     void retryOnServerErrors_thenEventualSuccess() {
-        // задаём сценарий: 2 ошибки 500 подряд, затем 200
         wm.stubFor(post(urlPathMatching("/links"))
                 .inScenario("retry-scenario")
                 .whenScenarioStateIs(STARTED)
@@ -74,7 +72,6 @@ class RetryTest {
                 .expectNextMatches(resp -> resp.id() == 1)
                 .verifyComplete();
 
-        // проверяем, что всего 3 попытки
         wm.verify(3, postRequestedFor(urlEqualTo("/links")));
     }
 
@@ -86,7 +83,6 @@ class RetryTest {
                 .expectErrorMatches(throwable -> throwable instanceof WebClientResponseException.BadRequest)
                 .verify();
 
-        // только одна попытка
         wm.verify(1, postRequestedFor(urlEqualTo("/links")));
     }
 }

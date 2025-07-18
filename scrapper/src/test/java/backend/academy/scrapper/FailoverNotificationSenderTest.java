@@ -1,40 +1,43 @@
 package backend.academy.scrapper;
 
-import static org.mockito.Mockito.*;
-
 import backend.academy.dto.request.LinkUpdateRequest;
 import backend.academy.scrapper.config.ScrapperConfig;
 import backend.academy.scrapper.config.ScrapperConfig.AppProperties;
 import backend.academy.scrapper.notification.FailoverNotificationSender;
 import backend.academy.scrapper.notification.HttpNotificationSender;
 import backend.academy.scrapper.notification.KafkaNotificationSender;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-public class FailoverNotificationSenderTest {
+import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
+class FailoverNotificationSenderTest {
+
+    @Mock
     private KafkaNotificationSender kafkaSender;
+
+    @Mock
     private HttpNotificationSender httpSender;
+
+    @Mock
     private ScrapperConfig config;
+
+    @Mock
+    private AppProperties appProperties;
+
+    @InjectMocks
     private FailoverNotificationSender failoverSender;
-
-    @BeforeEach
-    void setup() {
-        kafkaSender = mock(KafkaNotificationSender.class);
-        httpSender = mock(HttpNotificationSender.class);
-
-        AppProperties appProperties = mock(AppProperties.class);
-        when(appProperties.messageTransport()).thenReturn("KAFKA");
-
-        config = mock(ScrapperConfig.class);
-        when(config.app()).thenReturn(appProperties);
-
-        failoverSender = new FailoverNotificationSender(kafkaSender, httpSender, config);
-    }
 
     @Test
     void shouldFallbackToHttpWhenKafkaFails() {
         LinkUpdateRequest request = new LinkUpdateRequest(123L, null, null, null);
+
+        when(config.app()).thenReturn(appProperties);
+        when(appProperties.messageTransport()).thenReturn("KAFKA");
 
         doThrow(new RuntimeException("Kafka failure")).when(kafkaSender).sendNotification(request);
 
@@ -48,6 +51,9 @@ public class FailoverNotificationSenderTest {
     void shouldNotFallbackIfPrimarySucceeds() {
         LinkUpdateRequest request = new LinkUpdateRequest(123L, null, null, null);
 
+        when(config.app()).thenReturn(appProperties);
+        when(appProperties.messageTransport()).thenReturn("KAFKA");
+
         failoverSender.sendNotification(request);
 
         verify(kafkaSender).sendNotification(request);
@@ -57,6 +63,9 @@ public class FailoverNotificationSenderTest {
     @Test
     void shouldLogFailureIfBothTransportsFail() {
         LinkUpdateRequest request = new LinkUpdateRequest(123L, null, null, null);
+
+        when(config.app()).thenReturn(appProperties);
+        when(appProperties.messageTransport()).thenReturn("KAFKA");
 
         doThrow(new RuntimeException("Kafka failure")).when(kafkaSender).sendNotification(request);
         doThrow(new RuntimeException("Http fallback failure")).when(httpSender).sendNotification(request);

@@ -27,6 +27,7 @@ public class ScrapperClient {
     private static final Logger logger = LoggerFactory.getLogger(ScrapperClient.class);
     private final WebClient webClient;
     private final Retry retry;
+    private final BotConfig botConfig;
 
     public ScrapperClient(
             WebClient.Builder webClientBuilder,
@@ -34,9 +35,9 @@ public class ScrapperClient {
             io.github.resilience4j.retry.RetryRegistry retryRegistry) {
         this.webClient = webClientBuilder.baseUrl(botConfig.scrapperUrl()).build();
         this.retry = retryRegistry.retry("scrapperClient");
+        this.botConfig = botConfig;
     }
 
-    @TimeLimiter(name = "scrapperClient")
     @CircuitBreaker(name = "scrapperClient", fallbackMethod = "fallbackVoid")
     public Mono<Void> registerChat(Long chatId) {
         return webClient
@@ -45,10 +46,10 @@ public class ScrapperClient {
                 .retrieve()
                 .bodyToMono(Void.class)
                 .transformDeferred(RetryOperator.of(retry))
+                .timeout(botConfig.timeout())
                 .doOnSubscribe(s -> logger.info("Регистрация чата chatId: {}", chatId));
     }
 
-    @TimeLimiter(name = "scrapperClient")
     @CircuitBreaker(name = "scrapperClient", fallbackMethod = "fallbackLinkResponse")
     public Mono<LinkResponse> addLink(Long chatId, LinkResponse link) {
         return webClient
@@ -59,10 +60,10 @@ public class ScrapperClient {
                 .retrieve()
                 .bodyToMono(LinkResponse.class)
                 .transformDeferred(RetryOperator.of(retry))
+                .timeout(botConfig.timeout())
                 .doOnSubscribe(s -> logger.info("Добавление ссылки chatId: {}, url: {}", chatId, link.url()));
     }
 
-    @TimeLimiter(name = "scrapperClient")
     @CircuitBreaker(name = "scrapperClient", fallbackMethod = "fallbackVoid")
     public Mono<Void> removeLink(Long chatId, URI urlToRemove) {
         RemoveLinkRequest request = new RemoveLinkRequest(urlToRemove);
@@ -76,6 +77,7 @@ public class ScrapperClient {
                 .retrieve()
                 .bodyToMono(Void.class)
                 .transformDeferred(RetryOperator.of(retry))
+                .timeout(botConfig.timeout())
                 .doOnSubscribe(s -> logger.info("Удаление ссылки chatId: {}, url: {}", chatId, urlToRemove))
                 .doOnError(e -> logger.error("Ошибка при удалении ссылки chatId: {}, url: {}", chatId, urlToRemove, e));
     }
@@ -92,10 +94,10 @@ public class ScrapperClient {
                 .map(ListLinksResponse::links)
                 .defaultIfEmpty(Collections.emptyList())
                 .transformDeferred(RetryOperator.of(retry))
+                .timeout(botConfig.timeout())
                 .doOnSubscribe(s -> logger.info("Получение списка ссылок chatId: {}", chatId));
     }
 
-    @TimeLimiter(name = "scrapperClient")
     @CircuitBreaker(name = "scrapperClient", fallbackMethod = "fallbackStringSet")
     public Mono<Set<String>> getAllTags(Long chatId) {
         return webClient
@@ -106,10 +108,10 @@ public class ScrapperClient {
                 .bodyToMono(new ParameterizedTypeReference<Set<String>>() {})
                 .defaultIfEmpty(Collections.emptySet())
                 .transformDeferred(RetryOperator.of(retry))
+                .timeout(botConfig.timeout())
                 .doOnSubscribe(s -> logger.info("Получение всех тегов chatId: {}", chatId));
     }
 
-    @TimeLimiter(name = "scrapperClient")
     @CircuitBreaker(name = "scrapperClient", fallbackMethod = "fallbackLinkListWithTags")
     public Mono<List<LinkResponse>> getLinksByTags(Long chatId, Set<String> tags) {
         return webClient
@@ -124,6 +126,7 @@ public class ScrapperClient {
                 .map(ListLinksResponse::links)
                 .defaultIfEmpty(Collections.emptyList())
                 .transformDeferred(RetryOperator.of(retry))
+                .timeout(botConfig.timeout())
                 .doOnSubscribe(s -> logger.info("Получение ссылок по тегам chatId: {}, tags: {}", chatId, tags));
     }
 
